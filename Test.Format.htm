@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title id='Description'>Problem with localization of float column. Displaying wrong currency symbol</title>
+	<meta name="description" content="JavaScript Grid which has multiple built-in aggregates" /> 	
+    <link rel="stylesheet" href="https://www.jqwidgets.com/public/jqwidgets/styles/jqx.base.css" type="text/css" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1 minimum-scale=1" />	
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxcore.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxdata.js"></script> 
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxbuttons.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxscrollbar.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxmenu.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.edit.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.selection.js"></script> 
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.aggregates.js"></script> 
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxcheckbox.js"></script>
+	<script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxlistbox.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxdropdownlist.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.grouping.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.selection.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.sort.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.columnsresize.js"></script>
+    <script type="text/javascript" src="https://www.jqwidgets.com/public/jqwidgets/jqxgrid.filter.js"></script>
+	
+    
+    
+	<!-- local resources -->
+	<script type="text/javascript" src="generatedata.js"></script>
+	<script type="text/javascript" src="globalize.js"></script>
+	<script type="text/javascript" src="globalize.culture.pt-BR.js"></script>
+	
+	
+	
+	
+    <script type="text/javascript">
+        $(document).ready(function () {
+            
+           // prepare the data
+            var data = generatedata(200);
+			
+            var source =
+            {
+                localdata: data,
+                datatype: "array",
+                datafields:
+                [
+                    { name: 'firstname', type: 'string' },
+                    { name: 'lastname', type: 'string' },
+                    { name: 'productname', type: 'string' },
+                    { name: 'available', type: 'bool' },
+                    { name: 'quantity', type: 'number' },
+                    { name: 'price', type: 'float' }
+                ],
+                updaterow: function (rowid, rowdata) {
+                    // synchronize with the server - send update command   
+                }
+            };
+
+            var dataAdapter = new $.jqx.dataAdapter(source);
+
+            // initialize jqxGrid
+            $("#grid").jqxGrid(
+            {
+                width: '80%',
+                source: dataAdapter,     
+                showstatusbar: true,
+                statusbarheight: 50,
+                editable: true,
+				filterable: true,
+				sortable: true,
+				groupable: true,
+                showaggregates: true,
+                selectionmode: 'singlecell',
+				localization: getLocalization(),
+                columns: [
+                  { text: 'First Name', columntype: 'textbox', datafield: 'firstname', width: 170 },
+                  { text: 'Last Name', datafield: 'lastname', columntype: 'textbox', width: 170 },
+                  { text: 'Product', datafield: 'productname', width: 170,
+                      aggregates: ['count',
+                          { 'Cappuccino Items':
+                            function (aggregatedValue, currentValue) {
+                                if (currentValue == "Cappuccino") {
+                                    return aggregatedValue + 1;
+                                }
+
+                                return aggregatedValue;
+                            }
+                          }
+                      ]
+                  },
+                  { text: 'In Stock', datafield: 'available', columntype: 'checkbox', width: 125,
+                      aggregates: [{ 'In Stock':
+                          function (aggregatedValue, currentValue) {
+                              if (currentValue) {
+                                  return aggregatedValue + 1;
+                              }
+
+                              return aggregatedValue;
+                          }
+                      },
+                      { 'Not In Stock':
+                          function (aggregatedValue, currentValue) {
+                              if (!currentValue) {
+                                  return aggregatedValue + 1;
+                              }
+
+                              return aggregatedValue;
+                          }
+                      }
+                     ]
+                  },
+                  { text: 'Quantity', datafield: 'quantity', width: 85, cellsalign: 'right', cellsformat: 'n2', aggregates: ['min', 'max'],
+                      aggregatesrenderer: function (aggregates) {
+                          var renderstring = "";
+                          $.each(aggregates, function (key, value) {
+                              var name = key == 'min' ? 'Min' : 'Max';
+                              renderstring += '<div style="position: relative; margin: 4px; overflow: hidden;">' + name + ': ' + value +'</div>';
+                          });
+                          return renderstring;
+                      }
+                  },
+                  { text: 'Price', datafield: 'price', cellsalign: 'right', cellsformat: 'c2', aggregates: ['sum', 'avg'] } //This column should be formatted with currency symbol 'R$' (Brazilian Real)
+                ]
+            });
+        });
+    </script>
+</head>
+<body class='default'>
+	<p>
+	<h4>The 'price' column should be formatted with the currency symbol 'R$' (brazilian Real) </h4>
+		<div>Please see the globalize.culture.pt-BR.js file</div>
+		<div>The other features on the grid, got well translated</div>
+	</p>
+    <div id='jqxWidget'>
+        <div id="grid"></div>
+    </div>
+
+
+<div style="position: absolute; bottom: 5px; right: 5px;">
+
+</div>
+</body>
+</html>
